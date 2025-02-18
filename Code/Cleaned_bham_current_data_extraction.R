@@ -28,7 +28,7 @@ bham_current2=nc_open("../Data/bellingham_bay_2024.02.26_2024.06.08.nc")
 
 
 ## OPEN THE NET CDF FILE
-ncin <- nc_open(bham_current)
+ncin <- nc_open(bham_current) # NOT NEEDED IF ALREADY OPEN netCDF object. 
 print(bham_current)
 
 ## LIST THE NAMES OF THE VARIABLES
@@ -44,6 +44,9 @@ current<- data.frame(ubar = ubar, vbar = vbar, ocean_time = ocean_time)
 
 ## FIND UNIT OF ocean_time, EPOCH TIME
 dlname = ncatt_get(bham_current, "ocean_time", "units")
+
+## TURN EPOCH TIME INTO NORMAL UTC TIME
+timedate_UTC <- as.POSIXct(ocean_time, origin = "1970-01-01", tz = "UTC") 
 
 ## TURN EPOCH TIME INTO PST AND PDT TIME
 timedate_PDT_PST <- format(timedate_UTC, tz = "America/Los_Angeles", usetz = TRUE)
@@ -63,7 +66,6 @@ write.xlsx(current3.0, file = "second_current_data.xlsx", sheetName = "Sheet1", 
 ## GET LONGITUDE AND LATITUDE
 lonu <- ncvar_get(bham_current,"lon_u")
 longv<- ncvar_get(bham_current, "lon_v")
-nlon <- dim(lon)
 
 
 #### PCA ####
@@ -131,7 +133,7 @@ result <- datetime %>%
   left_join(full_current, by = "timedate") %>%
   select(timedate, PC1)
 
-# PRINT THE RESULT, REMOVE THE RANDOM DUPLICATE OF 2/26/2024
+# PRINT THE RESULT, MAKE SURE TO REMOVE THE RANDOM DUPLICATE OF 2/26/2024
 print(result)
 
 # CREATE EXCEL WITH THE PC1 VALUES, EXPORT TO WORKING DIRECTORY

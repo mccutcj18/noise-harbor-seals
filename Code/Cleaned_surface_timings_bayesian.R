@@ -224,6 +224,7 @@ cor.matrix<-cor(surfacetime[,c("avgnoise", "month", "PC1", "time", "sealpresence
 cor.matrix[abs(cor.matrix)< 0.7]<-NA
 cor.matrix
 
+# MAKE SURE TO GO BACK AND RESET SEALPRESENCE AND MONTH TO FACTORS
 
 ## OVERALL, THERE ARE NO MAJOR ASSUMPTION VIOLATIONS SO WILL PROCEED WITH THIS FULL MODEL
 
@@ -399,7 +400,7 @@ STloo3 = loo(STmodel3)
 
 ## COMPARE THE LOO RESULTS
 compare = loo_compare(loo_STnull, STloo1, STloo2, STloo3) 
-print(compare) # PRINT LOO COMPARISON RESULTS
+print(compare, simplify = FALSE) # PRINT LOO COMPARISON RESULTS
 
 
 #### FIGURES ####

@@ -16,8 +16,6 @@ full_data$month= as.factor(full_data$month) # FOR USING AS A RANDOM EFFECT
 full_data$observ_id= as.numeric(full_data$observ_id) # FOR USING AS A SEQUENTIAL TIME VARIABLE IN ar()
 full_data$time= as.numeric(full_data$time) # A DISCRETE NUMERIC VARIABLE
 
-install.packages("renv")
-library(renv)
 
 ## LOAD NEEDED PACKAGES
 
@@ -904,14 +902,16 @@ ppc +
 
 ### FIGURE 6: IN-AIR NOISE DISTRIBUTION
 
+## IF YOU HAVE ISSUES WITH THE CODE FOR THIS FIGURE RE-READ IN full_data
+
 ## ADD COLUMN TO full_data THAT HAS COMBINED MONTH AND YEAR NUMBERS
 
 full_data$month <- as.numeric(as.character(full_data$month)) # NEED TO BE NUMERIC
 full_data$year <- as.numeric(as.character(full_data$year)) # NEED TO BE NUMERIC
-full_data$month <- as.factor(full_data$month) # RESET TO FACTOR FOR MDOELING
-full_data$year <- as.factor(full_data$year) # RESET TO FACTOR FOR MDOELING
+full_data$month <- as.factor(full_data$month) # RESET TO FACTOR FOR MODELING
+full_data$year <- as.factor(full_data$year) # RESET TO FACTOR FOR MODELING
 
-# MAP MONTHS > 12 BACK TO CORRECT MONTH NUMBERS
+# MAP MONTHS > 12 BACK TO CORRECT MONTH NUMBERS 
 adjusted_month <- (full_data$month - 1) %% 12 + 1
 
 # CREATE A NEW FORMATTED COLUMN FOR MONTH-YEAR
@@ -981,7 +981,7 @@ mcmc_plot <- mcmc_intervals(
   prob_outer = 0.99, # 99% INTERVALS
   point_est = "median" # USE MEDIAN AS THE POINT ESTIMATE
 ) +
-  theme_minimal() 
+  theme_minimal() +
   theme(
     text = element_text(family = "sans"), 
     panel.grid.major = element_blank(), 
