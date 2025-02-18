@@ -4,7 +4,7 @@
 
 
 ## READ IN DATA
-full_data=read.csv("data", header=T)
+full_data=read.csv("../Data/full_data.csv", header=T)
 full_data=full_data[1:134,]
 
 ## ADJUST DATASET FORMATTING

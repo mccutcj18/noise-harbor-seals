@@ -17,11 +17,10 @@ library(openxlsx) # CREATE XLSX FILES
 library(ncdf4) # NETCDF HANDLING
 library(dplyr) # DATAFRAME ORGANIZING
 
-## SET WORKING DIRECTORY TO WHEREVER THE NETCDF FILE IS
 
 ## READ IN DATA
-bham_current=nc_open("bellingham_bay_2023.06.01_2024.02.26.nc")
-bham_current2=nc_open("bellingham_bay_2024.02.26_2024.06.08.nc")
+bham_current=nc_open("../Data/bellingham_bay_2023.06.01_2024.02.26.nc")
+bham_current2=nc_open("../Data/bellingham_bay_2024.02.26_2024.06.08.nc")
 
 #### CURRENT DATA EXTRACTION ####
 
@@ -70,7 +69,7 @@ nlon <- dim(lon)
 #### PCA ####
 
 ## READ IN DATA FOR PCA AND ORGANIZE IT
-PCA_data = read.csv("full_current_data.csv", header=T)
+PCA_data = read.csv("../Data/full_current_data.csv", header=T)
 str(PCA_data)
 PCA_data= PCA_data[,2:3]
 
@@ -110,10 +109,10 @@ points(scores[,1], scores[,2], col="red")
 
 ## READ IN DATASET
 
-full_current=read.csv("full_current_data.csv", header=T)
+full_current=read.csv("../Data/full_current_data.csv", header=T)
 full_current= full_current[,1:5]
 
-datetime=read.csv("datetime.csv", header=T)
+datetime=read.csv("../Data/datetime.csv", header=T)
 datetime$date=as.Date(datetime$date)
 datetime$time=as.numeric(datetime$time)
 
