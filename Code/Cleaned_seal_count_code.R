@@ -892,7 +892,7 @@ ggplot(full_data, aes(x = count)) +
 
 ### FIGURE 3: POSTERIOR PREDICTIVE CHECK
 
-ppc = pp_check(fittedModel_bayes) # SHOULD LINE UP
+ppc = pp_check(ZImodel) # SHOULD LINE UP
 
 # CUSTOMIZE AXES
 ppc + 
