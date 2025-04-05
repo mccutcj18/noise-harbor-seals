@@ -888,7 +888,11 @@ ggplot(full_data, aes(x = count)) +
   ) +
   xlab("Number of Seals") +
   ylab("Density") +
-  theme_classic()
+  theme_classic() +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
+  )
 
 ### FIGURE 3: POSTERIOR PREDICTIVE CHECK
 
@@ -897,9 +901,12 @@ ppc = pp_check(ZImodel) # SHOULD LINE UP
 # CUSTOMIZE AXES
 ppc + 
   xlab("Number of Seals") + 
-  ylab("Density")+
-  theme(text = element_text(family = "sans"))
-
+  ylab("Density") +
+  theme(
+    text = element_text(family = "sans"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
+  )
 ### FIGURE 6: IN-AIR NOISE DISTRIBUTION
 
 ## IF YOU HAVE ISSUES WITH THE CODE FOR THIS FIGURE RE-READ IN full_data
@@ -983,11 +990,13 @@ mcmc_plot <- mcmc_intervals(
 ) +
   theme_minimal() +
   theme(
-    text = element_text(family = "sans"), 
+    text = element_text(family = "sans"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
     panel.grid.major = element_blank(), 
     panel.grid.minor = element_blank(), 
     panel.background = element_blank(), 
-    axis.line = element_line(color = "black") 
+    axis.line = element_line(color = "black")
   ) +
   labs(x = "Log-Transformed Estimated Covariate Effect") 
 
@@ -998,6 +1007,7 @@ mcmc_plot + scale_y_discrete(
     "b_time" = "Time of Day"
   )
 )
+
 
 
 

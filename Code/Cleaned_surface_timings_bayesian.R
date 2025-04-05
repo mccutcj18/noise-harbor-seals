@@ -427,7 +427,11 @@ a = ggplot(surfacetime, aes(x = avgsurfacetime)) +
   ) +
   xlab("Average Surface Duration") +
   ylab("Density") +
-  theme_classic()
+  theme_classic()+
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
+  )
 
 # b: AFTER TRANSFORM
 b = ggplot(surfacetime, aes(x = logsurfacetime)) + 
@@ -449,7 +453,11 @@ b = ggplot(surfacetime, aes(x = logsurfacetime)) +
   ) +
   xlab("Log Transformed Average Surface Duration") +
   ylab("") +
-  theme_classic()
+  theme_classic()+
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
+  )
 
 # ARRANGE
 grid.arrange(a, b, ncol = 2)
@@ -463,7 +471,11 @@ ppc = pp_check(STfittedModel_bayes)
 ppc + 
   xlab("Average Surface Duration") + 
   ylab("Density")+
-  theme(text = element_text(family = "sans"))
+  theme(
+    text = element_text(family = "sans"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
+  )
 
 ## FIGURE 9: SURFACE DURATION OVER THE MONTHS
 
@@ -522,7 +534,9 @@ mcmc_plot2 <- mcmc_intervals(
 ) +
   theme_minimal() + 
   theme(
-    text = element_text(family = "sans"), 
+    text = element_text(family = "sans"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
     panel.grid.major = element_blank(), 
     panel.grid.minor = element_blank(), 
     panel.background = element_blank(), 
