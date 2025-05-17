@@ -11,7 +11,7 @@ This file contains all the data for the noise-harbor-seals repository.
 - `datetime.csv`: This is a list of all the observation dates and times that I matched up with the PCA output data to extract just the values I needed. 
 - `full_current_data.csv`: This is a list of depth-averaged velocity output and the extracted PC1 values for each date and time from 05/31/2023 to 06/08/2024.
 - `full_data`: This is a list of the dates, times, averaged in-air noise, count, observation ID, seal presence, water current (PC1), and averaged surfacing duration (avgsurfacetime). There are several other variables in the list but those stated in the previous sentence are the ones used in the analysis. 
-
+- `full_data_withTide`: This is a copy of full_data but with a new variable tide_height added. This variable was included later in the analysis of seal number models.  
 
 ### References
 MacCready, P., McCabe, R.M., Siedlecki, S.A., Lorenz, M., Giddings, S.N., Bos, J., Albertson, S., Banas, N.S., and Garnier, S. 2021. Estuarine circulation, nixing, and residence times in the Salish Sea. Journal of Geophysical Research Oceans, 126(2): e2020JC016738. doi:10.1029/2020JC016738.
