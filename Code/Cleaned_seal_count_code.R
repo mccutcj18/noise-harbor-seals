@@ -4,7 +4,7 @@
 
 
 ## READ IN DATA
-full_data=read.csv("../Data/full_data.csv", header=T)
+full_data=read.csv("../Data/full_data_withTide.csv", header=T)
 full_data=full_data[1:134,]
 
 ## ADJUST DATASET FORMATTING
@@ -83,7 +83,7 @@ mean(full_data$count)
 full_data$month= as.numeric(full_data$month)
 
 ## RUN PAIRWISE cor BETWEEN ALL PREDICTORS WITH A CUT-OFF OF +/- 0.7
-cor.matrix<-cor(full_data[,c("avgnoise", "month", "PC1", "time")])
+cor.matrix<-cor(full_data[,c("avgnoise", "month", "PC1", "time", "tide_height")])
 cor.matrix[abs(cor.matrix)< 0.7]<-NA # KEEP ONLY LARGE CORRELATIONS IN SAME MODEL 
 cor.matrix
 
@@ -97,7 +97,7 @@ full_data$month= as.factor(full_data$month)
 ## SINCE WE IT IS MORE LIKELY WE MEASURED THE SAME INDIVIDUALS ON OBSERVATIONS TEMPORALLY CLOSER TO EACH OTHER THAN ONES FURTHER APART THERE IS INHERENT  AUTOCORRELATION
 ## CANNOT RUN A ACF PLOT ON THE COUNT DATA BECAUSE IT IS NON-CONTINUOUS (OBSERVATIONS UNEQUALLY SPACED APART)
 
-## CHECK FOR AUTOCORREALTION BETWEEN MONTHS BY LOOKING AT THE RESIDUALS OF MONTH
+## CHECK FOR AUTOCORRELATION BETWEEN MONTHS BY LOOKING AT THE RESIDUALS OF MONTH
 fit1<- lm(count~ month, data = full_data)
 plot(full_data$month, fit1$res, pch=20, col="blue")
 abline(h=0) # Add the horizontal line at 0
@@ -121,20 +121,29 @@ null_priors <- c(
 full_priors <- c(
   set_prior("normal(0, 10)", class = "b", coef = "avgnoise"),
   set_prior("normal(0, 10)", class = "b", coef = "PC1"),
+  set_prior("normal(-0.1, 0.5)", class = "b", coef = "tide_height"), # LIKELY NEGATIVE RELATIONSHIP BETWEEN TIDE HEIGHT AND SEAL COUNT
   set_prior("normal(0, 10)", class = "b", coef = "time"),
   set_prior("cauchy(0, 2)", class = "sd", group = "month"), # INCLUDE TO INDICATE THAT THERE IS LIKELY SOME VARIATION BETWEEN MONTHS
   set_prior("uniform(-1, 1)", class = "ar") # UNIFORM BECAUSE THERE IS EQUAL CHANCE OF THE EFFECT BEING ANYWHERE FROM -1 TO 1
 )
 
-## SET PRIOR FOR FULL MODEL AND CANDIDATE model2
+## SET PRIOR FOR CANDIDATE model2
 model2_priors = c(
   set_prior("normal(0, 10)", class = "b", coef = "avgnoise"),
   set_prior("cauchy(0, 2)", class = "sd", group = "month"),
   set_prior("uniform(-1, 1)", class = "ar"))
 
-## SET PRIOR FOR FULL MODEL AND CANDIDATE model3
+## SET PRIOR FOR CANDIDATE model3
 model3_priors = c(
   set_prior("normal(0, 10)", class = "b", coef = "PC1"),
+  set_prior("normal(0, 10)", class = "b", coef = "avgnoise"),
+  set_prior("cauchy(0, 2)", class = "sd", group = "month"),
+  set_prior("uniform(-1, 1)", class = "ar"))
+
+## SET PRIOR FOR CANDIDATE model4
+
+model4_priors = c(
+  set_prior("normal(0.1, 0.5)", class = "b", coef = "tide_height"),
   set_prior("normal(0, 10)", class = "b", coef = "avgnoise"),
   set_prior("cauchy(0, 2)", class = "sd", group = "month"),
   set_prior("uniform(-1, 1)", class = "ar"))
@@ -148,7 +157,7 @@ model3_priors = c(
 
 ## FULL MODEL FITTED WITH A REGULAR POISSON DISTRIBUTION
 
-fittedModel_bayes <- brm(count ~ avgnoise + PC1 + time + (1 | month) +
+fittedModel_bayes <- brm(count ~ avgnoise + PC1 + time + tide_height + (1 | month) +
                            ar(time=observ_id, p=1), # INCLUDES AN AUTOREGRESSIVE TERM FOR observ_id
                          family = poisson(link = "log"), 
                          chains = 4,
@@ -167,7 +176,7 @@ pp_check(ZImodel, type = "dens_overlay") # SHOULD LINE UP
 
 ## FULL MODEL FITTED WITH A ZERO INFLATED POISSON DISTRIBUTION
 
-ZImodel <- brm(count ~ avgnoise + PC1 + time + (1 | month) +
+ZImodel <- brm(count ~ avgnoise + PC1 + time + tide_height + (1 | month) +
                  ar(time=observ_id, p=1),
                family = zero_inflated_poisson(link = "log"), 
                chains = 4,
@@ -270,7 +279,7 @@ acf(residuals_ZI, main = "Autocorrelation of Residuals")
 
 
 
-### OVERALL, ASSUMPTIONS ARE MET WELL ENOUGHT TO MOVE FORWARD WITH OUR ZI POISSON MODEL
+### OVERALL, ASSUMPTIONS ARE MET WELL ENOUGH TO MOVE FORWARD WITH OUR ZI POISSON MODEL
 ## THERE MAY BE SOME UNDERDISPERSION BUT NOT VERY MUCH. SINCE OUR MODEL FITS WELL WE ARE NOT WORRIED
 ## THE ZERO INFLATION ASPECT OF THE MODEL DOES NOT SEEM TO PREDICT ANY ZEROS WHICH IS NOT VERY SUPRISING GIVEN THAT THE POISSON PROCESS ALONE ACCOUNTS FOR MOST IF NOT ALL ZEROS.
 ## GOING TO STICK WITH ZI POISSON TO ENSURE BECAUSE THE MODEL STILL DOES ESTIMATE AN EFFECT OF ZERO INFLATION
@@ -298,7 +307,7 @@ plot(null_model)
 pp_check(null_model) 
 
 ## MODEL 1, SAME AS FITTED
-model1 <- brm(count ~ avgnoise + PC1 + time + (1 | month) +
+model1 <- brm(count ~ avgnoise + PC1 + time + tide_height + (1 | month) +
               ar(time=observ_id, p=1), 
               family = zero_inflated_poisson(link = "log"), 
               chains = 4, 
@@ -344,6 +353,17 @@ plot(model3)
 pp_check(model3) 
 
 
+## MODEL 4, TIDE HEIGHT AND AVERAGE NOISE, B/C I THINK IT WILL EXPLAIN MORE VARIANCE
+model4 <- brm(count ~ avgnoise + tide_height + (1 | month) +
+                ar(time=observ_id, p=1), 
+              family = zero_inflated_poisson(link = "log"), 
+              chains = 4, iter = 4000, data = full_data, prior = model4_priors,
+              control = list(adapt_delta = 0.95), 
+              save_pars = save_pars(all = TRUE)) # HELPS WITH LOO
+
+summary(model4)
+plot(model4) 
+pp_check(model4) 
 
 #### MODEL SELECTION USING LOO-CV, ORIGINAL VERSION ####
 
@@ -357,9 +377,10 @@ loo_null = loo(null_model)
 loo1 = loo(model1)
 loo2 = loo(model2)
 loo3 = loo(model3)
+loo4 = loo(model4)
 
 ## COMPARE THE FOUR LOOS
-compare = loo_compare(loo_null, loo1, loo2, loo3) 
+compare = loo_compare(loo_null, loo1, loo2, loo3, loo4) 
 print(compare) # PRINT LOO COMPARISON RESULTS
 
 
@@ -506,7 +527,7 @@ compute_posterior_without_i <- function(model, i) {
  
   train_data <- model_data[-i, , drop = FALSE]
   
-  model_without_i <- brm(count ~ avgnoise + PC1 + time + (1 | month) +
+  model_without_i <- brm(count ~ avgnoise + PC1 + time + tide_height + (1 | month) +
                            ar(time = observ_id, p = 1),
                          family = zero_inflated_poisson(link = "log"),
                          chains = 4,
@@ -849,6 +870,121 @@ print(test, simplify = FALSE)
 
 
 
+#### MODEL 4 ROBUST LOO ####
+
+## 1. DEFINE THE FUNCTION TO REFIT THE MODEL EXCLUDING ONE OBSERVATION AND EXTRACT POSTERIOR SAMPLES
+compute_posterior_without_i <- function(model, i) {
+  
+  model_data <- model$data
+  
+  train_data <- model_data[-i, , drop = FALSE]
+  
+  model_without_i <- brm(count ~ avgnoise + tide_height + (1 | month) + ar(time = observ_id, p = 1),
+                         family = zero_inflated_poisson(link = "log"),
+                         chains = 4,
+                         iter = 4000,
+                         data = train_data,
+                         prior = model4_priors,
+                         control = list(adapt_delta = 0.95),
+                         save_pars = save_pars(all = TRUE))
+  
+  posterior_samples <- as.data.frame(model_without_i)
+  return(posterior_samples)
+}
+
+## 2. PERFORM INITIAL LOO-CV WITH PSIS
+loo4 <- loo(model4, save_psis = TRUE)
+
+## 3. EXTRACT PARETO K DIAGNOSITICS
+pareto_k_values <- loo4$diagnostics$pareto_k
+print("Pareto k values:")
+print(summary(pareto_k_values))
+
+## 4. IDENTIFY PROBLEMATIC OBSERVATIONS
+k_threshold <- 0.7
+problematic_obs <- which(pareto_k_values > k_threshold)
+print(paste("Number of problematic observations:", length(problematic_obs)))
+
+## 5. REFIT MODELS EXCLUDING PROBLEMATIC OBSERVATIONS AND EXTRACT POSTERIOR SAMPLES
+if(length(problematic_obs) > 0) {
+  
+  posterior_samples_list <- lapply(problematic_obs, function(i) {
+    compute_posterior_without_i(model4, i)
+  })
+  
+  combined_posterior_samples <- do.call(rbind, posterior_samples_list)
+  
+  print("Combined posterior samples from models excluding problematic observations:")
+  print(head(combined_posterior_samples))
+} else {
+  print("No problematic observations found. Original LOO estimates are reliable.")
+}
+
+## 6. FUNCTION TO COMPUTE LOO FOR THE REFITTED MODELS
+compute_loo_for_posterior_samples <- function(posterior_samples, model_data, i) {
+  
+  test_data <- model_data[i, , drop = FALSE]
+  
+  log_lik_test_data <- apply(posterior_samples, 1, function(samples) {
+    mu <- exp(samples[1])
+    log_lik <- dpois(test_data$count, lambda = mu, log = TRUE)  
+    return(log_lik)
+  })
+  
+  elpd <- mean(log_lik_test_data)
+  return(elpd)
+}
+
+## 7. CALCULATE THE ELPD FOR EACH PROBLEMATIC OBSERVATION
+elpd_values <- sapply(problematic_obs, function(i) {
+  posterior_samples_i <- posterior_samples_list[[which(problematic_obs == i)]]
+  compute_loo_for_posterior_samples(posterior_samples_i, model4$data, i)
+})
+
+## 8. UPDATE THE LOO OBJECT WITH THE NEW ELPD VALUES FOR THE PROBLEMATIC OBSERVATIONS
+loo_updated4 <- loo4
+loo_updated4$pointwise[problematic_obs, "elpd_loo"] <- elpd_values
+
+# RECOMPUTE THE TOTAL ELPD
+loo_updated4$estimates["elpd_loo", "Estimate"] <- sum(loo_updated4$pointwise[, "elpd_loo"])
+
+# UPDATE DIAGNOSTICS TO INDICATE EXACT COMPUTATION FOR PROBLEMATIC OBSERVATIONS
+loo_updated4$diagnostics$pareto_k[problematic_obs] <- NA
+
+# PRINT THE UPDATED LOO RESULTS
+print("Updated LOO results with exact ELPD contributions for problematic observations:")
+print(loo_updated4)
+
+## 9. UPDATE THE LOO OBKECT WITH THE OTHER NEW QUANTITIES (e.g., LOOIC)
+
+# a. RECALCULATE TOTAL ELPD AND STANDARD ERROR
+loo_updated4$estimates["elpd_loo", "Estimate"] <- sum(loo_updated4$pointwise[, "elpd_loo"])
+loo_updated4$estimates["elpd_loo", "SE"] <- sqrt(sum((loo_updated4$pointwise[, "elpd_loo"] - mean(loo_updated4$pointwise[, "elpd_loo"]))^2) / (nrow(loo_updated4$pointwise) - 1))
+
+# b. RECALCULATE LOOIC AND ITS STANDARD ERROR
+loo_updated4$estimates["looic", "Estimate"] <- -2 * loo_updated4$estimates["elpd_loo", "Estimate"]
+loo_updated4$estimates["looic", "SE"] <- 2 * loo_updated4$estimates["elpd_loo", "SE"]
+
+# c. RECALCULATE p_loo AND ITS STANDARD ERROR
+p_loo <- sum(loo_updated4$pointwise[, "p_loo"])
+loo_updated4$estimates["p_loo", "Estimate"] <- p_loo
+loo_updated4$estimates["p_loo", "SE"] <- sqrt(var(loo_updated4$pointwise[, "p_loo"]))
+
+## OPTIONAL: COMPARE ORIGINAL AND UPDATED ESTIMATES
+cat("\nComparison of estimates:\n")
+cat("Original total ELPD:", sum(loo4$pointwise[, "elpd_loo"]), "\n")
+cat("Updated total ELPD:", sum(loo_updated4$pointwise[, "elpd_loo"]), "\n")
+
+## OPTIONAL: COMPARE ORIGINAL AND UPDATED POINTWISE ESTIMATES
+print(loo4$pointwise[, "elpd_loo"])
+print(sum(loo_updated4$pointwise[, "elpd_loo"]))
+
+test <- loo_compare(loo_updated4, loo4)
+print(test, simplify = FALSE)
+
+
+
+
 #### ROBUST LOO COMPARISION RESULTS ####
 
 ### COMPARING THE LOO RESULTS OF MY CANDIDATE MODELS
@@ -858,7 +994,7 @@ print(test, simplify = FALSE)
 ## loo_updated2 IS FOR MODEL 2
 ## loo_updated3 IS FOR MODEL 3
 
-compare = loo_compare(loo_updated, loo_updated1, loo_updated2, loo_updated3) 
+compare = loo_compare(loo_updated, loo_updated1, loo_updated2, loo_updated3, loo_updated4) 
 
 print(compare, simplify = FALSE) # PRINT LOO COMPARISON RESULTS
 
@@ -983,7 +1119,7 @@ ggplot(data = full_data, aes(x = month_year, y = count)) +
 ## GRAPH TO LOOK AT EFFECT SIZES OF COVARIATES
 mcmc_plot <- mcmc_intervals(
   as.array(model1), 
-  pars = c("b_avgnoise", "b_PC1", "b_time"),
+  pars = c("b_avgnoise", "b_PC1", "b_time", "b_tide_height"),
   prob = 0.95, # 95% INTERVALS
   prob_outer = 0.99, # 99% INTERVALS
   point_est = "median" # USE MEDIAN AS THE POINT ESTIMATE
@@ -1004,7 +1140,8 @@ mcmc_plot + scale_y_discrete(
   labels = c(
     "b_avgnoise" = "In-air Noise", 
     "b_PC1" = "Water Current",
-    "b_time" = "Time of Day"
+    "b_time" = "Time of Day",
+    "b_tide_height" = "Tide height"
   )
 )
 
@@ -1019,7 +1156,7 @@ mcmc_plot + scale_y_discrete(
 ## TABLE 2
 
 # CREATE A TABLE WITH THE LOO INFORMATION
-results_table2 = loo_compare(loo_updated, loo_updated1, loo_updated2, loo_updated3) 
+results_table2 = loo_compare(loo_updated, loo_updated1, loo_updated2, loo_updated3, loo_updated4) 
 print(results_table2, simplify = FALSE) 
 
 # CONVERT THE RESULTS TABLE TO A DATA FRAME
@@ -1040,6 +1177,7 @@ write_xlsx(results_df2, "Seal_count_results_robust.xlsx")
 normal <- c(
   set_prior("normal(0, 10)", class = "b", coef = "avgnoise"),
   set_prior("normal(0, 10)", class = "b", coef = "PC1"),
+  set_prior("normal(-0.1, 0.5)", class = "b", coef = "tide_height"),
   set_prior("normal(0, 10)", class = "b", coef = "time"),
   set_prior("cauchy(0, 2)", class = "sd", group = "month"),
   set_prior("uniform(-1, 1)", class = "ar") 
@@ -1047,9 +1185,9 @@ normal <- c(
 
 # DECREASE FIXED EFFECT PRIORS BY A SD 0F 5 
 combination1 <- c(
-  # Prior for avgnoise
   set_prior("normal(0, 5)", class = "b", coef = "avgnoise"),
   set_prior("normal(0, 5)", class = "b", coef = "PC1"),
+  set_prior("normal(-0.1, 0.2)", class = "b", coef = "tide_height"),
   set_prior("normal(0, 5)", class = "b", coef = "time"),
   set_prior("cauchy(0, 2)", class = "sd", group = "month"), 
   set_prior("uniform(-1, 1)", class = "ar") 
@@ -1057,17 +1195,26 @@ combination1 <- c(
 
 # INCREASE FIXED EFFECT PRIORS BY A SD OF 5
 combination2 <- c(
-  # Prior for avgnoise
   set_prior("normal(0, 15)", class = "b", coef = "avgnoise"),
   set_prior("normal(0, 15)", class = "b", coef = "PC1"),
+  set_prior("normal(-0.1, 1)", class = "b", coef = "tide_height"),
   set_prior("normal(0, 15)", class = "b", coef = "time"),
+  set_prior("cauchy(0, 2)", class = "sd", group = "month"), 
+  set_prior("uniform(-1, 1)", class = "ar") 
+)
+
+combination3 <- c(
+  set_prior("normal(0, 10)", class = "b", coef = "avgnoise"),
+  set_prior("normal(0, 10)", class = "b", coef = "PC1"),
+  set_prior("normal(-0.5, 0.5)", class = "b", coef = "tide_height"),
+  set_prior("normal(0, 10)", class = "b", coef = "time"),
   set_prior("cauchy(0, 2)", class = "sd", group = "month"), 
   set_prior("uniform(-1, 1)", class = "ar") 
 )
 
 ## MODELS TO COMPARE THE POSTERIOR RESULTS OF: 
 
-normal_model <- brm(count ~ avgnoise + PC1 + time + (1 | month) +
+normal_model <- brm(count ~ avgnoise + PC1 + time + tide_height + (1 | month) +
                       ar(time=observ_id, p=1), 
                     family = zero_inflated_poisson(link = "log"), 
                     chains = 4,
@@ -1076,7 +1223,7 @@ normal_model <- brm(count ~ avgnoise + PC1 + time + (1 | month) +
                     prior = normal,
                     control = list(adapt_delta = 0.95)) 
 
-priortest1 = brm(count ~ avgnoise + PC1 + time + (1 | month) +
+priortest1 = brm(count ~ avgnoise + PC1 + time + tide_height + (1 | month) +
                    ar(time=observ_id, p=1), 
                  family = zero_inflated_poisson(link = "log"), 
                  chains = 4,
@@ -1085,13 +1232,22 @@ priortest1 = brm(count ~ avgnoise + PC1 + time + (1 | month) +
                  prior = combination1,
                  control = list(adapt_delta = 0.95)) 
 
-priortest2 = brm(count ~ avgnoise + PC1 + time + (1 | month) +
+priortest2 = brm(count ~ avgnoise + PC1 + time + tide_height + (1 | month) +
                    ar(time=observ_id, p=1), 
                  family = zero_inflated_poisson(link = "log"), 
                  chains = 4,
                  iter = 4000,
                  data = full_data,
                  prior = combination2,
+                 control = list(adapt_delta = 0.95)) 
+
+priortest3 = brm(count ~ avgnoise + PC1 + time + tide_height + (1 | month) +
+                   ar(time=observ_id, p=1), 
+                 family = zero_inflated_poisson(link = "log"), 
+                 chains = 4,
+                 iter = 4000,
+                 data = full_data,
+                 prior = combination3,
                  control = list(adapt_delta = 0.95)) 
 
 ## POSTERIOR PREDICTIVE CHECKS
@@ -1102,14 +1258,19 @@ pp_check(priortest1)
 
 pp_check(priortest2)
 
+pp_check(priortest3)
+
 ## COMPARE LOOS
 
 loonormal = loo(normal_model) # RUN A LOO FOR THE NULL MODEL, WARNING MESSAGES BUT NOT GOING TO DEAL WITH THIS FOR OUR CURRENT PURPOSE
 looprior1 = loo(priortest1)
 looprior2 = loo(priortest2)
+looprior3 = loo(priortest3)
 
-loo_compare(loonormal, looprior1, looprior2) 
+sensitivity = loo_compare(loonormal, looprior1, looprior2, looprior3) 
+print(sensitivity, simplify = F)
 
-## THERE WERE NO LARGE DIFFERENCES BETWEEN THE MODELS WHEN WE TWEAKED OUR PRIORS
+
+## THERE WERE NO LARGE DIFFERENCES BETWEEN THE MODELS WHEN WE TWEAKED OUR PRIORS (SD for all, mean and SD for tide_height)
 ## THIS ENSURES THAT OUR PRIOR SPECIFICATION IS APPROPRIATE AND IS NOT GOING TO ALTER THE RESULTS UNDULY
 
