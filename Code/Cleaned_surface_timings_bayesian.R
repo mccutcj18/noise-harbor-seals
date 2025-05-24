@@ -13,6 +13,7 @@ install.packages("dplyr")
 install.packages("gridExtra")
 install.packages("tidybayes")
 install.packages("tidyr")
+install.packages("patchwork")
 
 library(posterior) # FOR RANK-NORMALIZED EFFECTIVE SAMPLE SIZE AND RHAT CALCUALTIONS
 library(writexl) # CREATING EXCEL SHEETS
@@ -25,6 +26,7 @@ library(bayesplot) # PLOPT PARAMETERS IN MCMC_area
 library(tidybayes) # FOR ASSUMPTION CHECKING
 library(gridExtra) # FOR ARRANGING GGPLOTS
 library(tidyr) # TO USE drop_na()
+library(patchwork) # ANOTHER PACKAGE FOR ARRANGING PLOTS
 
 
 ## READ IN DATA
@@ -524,7 +526,7 @@ ggplot(data = surfacetime, aes(x = month_year, y = avgsurfacetime)) +
 
 ## FIGURE 10: POSTERIOR DISTRIBUTION PLOT
 
-
+## GRAPH TO LOOK AT EFFECT SIZES OF ALL COVARIATES
 mcmc_plot2 <- mcmc_intervals(
   as.array(STmodel1), 
   pars = c("b_avgnoise", "b_PC1", "b_time", "b_sealpresence1"),
@@ -544,7 +546,7 @@ mcmc_plot2 <- mcmc_intervals(
   ) +
   labs(x = "Log-Transformed Estimated Covariate Effect") 
 
-mcmc_plot2 + scale_y_discrete(
+plotA = mcmc_plot2 + scale_y_discrete(
   labels = c(
     "b_avgnoise" = "In-air Noise", 
     "b_PC1" = "Water Current",
@@ -553,7 +555,35 @@ mcmc_plot2 + scale_y_discrete(
   )
 )
 
+## GRAPH TO LOOK AT EFFECT SIZES OF NOISE, TIME OF DAY, AND SEAL PRESENCE
+mcmc_plot2 <- mcmc_intervals(
+  as.array(STmodel1), 
+  pars = c("b_avgnoise", "b_time"),
+  prob = 0.95, # 95% INTERVALS
+  prob_outer = 0.99, # 99%
+  point_est = "median" # USE MEDIAN AS THE POINT ESTIMATE
+) +
+  theme_minimal() + 
+  theme(
+    text = element_text(family = "sans"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(), 
+    panel.background = element_blank(), 
+    axis.line = element_line(color = "black") 
+  ) +
+  labs(x = "Log-Transformed Estimated Covariate Effect") 
 
+plotB = mcmc_plot2 + scale_y_discrete(
+  labels = c(
+    "b_avgnoise" = "In-air Noise",
+    "b_time" = "Time of Day"
+  )
+)
+
+## COMBINE PLOTS A AND B
+plotA/plotB
 
 #### TABLES ####
 

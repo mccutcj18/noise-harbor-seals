@@ -27,6 +27,7 @@ install.packages("brms")
 install.packages("rstan")
 install.packages("bayesplot")
 install.packages("dplyr")
+install.packages("patchwork")
 
 library(posterior) # FOR RANK-NORMALIZED EFFECTIVE SAMPLE SIZE AND RHAT CALCUALTIONS. ALSO ASSUMPTION CHECKING
 library(writexl) # CREATING EXCEL SHEETS
@@ -35,7 +36,8 @@ library(ggplot2) # GRAPHING
 library(dplyr) # FOR FORMATTING AND SUMMARIZE FUNCTIONS
 library(brms) # FOR BRM MODEL AND LOO
 library(rstan) # TO MAKE STAN RUN FASTER 
-library(bayesplot) # PLOPT PARAMETERS IN MCMC_area
+library(bayesplot) # PLOT PARAMETERS IN MCMC_area
+library(patchwork) # TO MAKE A PANEL PLOT
 
 ## HELP STAN RUN FASTER
 rstan_options(auto_write = TRUE)
@@ -1116,8 +1118,8 @@ ggplot(data = full_data, aes(x = month_year, y = count)) +
 
 ### FIGURE 8: POSTERIOR DISTRIBUTIONS
 
-## GRAPH TO LOOK AT EFFECT SIZES OF COVARIATES
-mcmc_plot <- mcmc_intervals(
+## GRAPH TO LOOK AT EFFECT SIZES OF ALL COVARIATES
+mcmc_plot1 <- mcmc_intervals(
   as.array(model1), 
   pars = c("b_avgnoise", "b_PC1", "b_time", "b_tide_height"),
   prob = 0.95, # 95% INTERVALS
@@ -1136,7 +1138,7 @@ mcmc_plot <- mcmc_intervals(
   ) +
   labs(x = "Log-Transformed Estimated Covariate Effect") 
 
-mcmc_plot + scale_y_discrete(
+plotA = mcmc_plot1 + scale_y_discrete(
   labels = c(
     "b_avgnoise" = "In-air Noise", 
     "b_PC1" = "Water Current",
@@ -1145,8 +1147,36 @@ mcmc_plot + scale_y_discrete(
   )
 )
 
+## GRAPH TO LOOK AT EFFECT SIZES OF NOISE, TIME OF DAY, AND TIDE
+mcmc_plot2 <- mcmc_intervals(
+  as.array(model1), 
+  pars = c("b_avgnoise", "b_time", "b_tide_height"),
+  prob = 0.95, # 95% INTERVALS
+  prob_outer = 0.99, # 99% INTERVALS
+  point_est = "median" # USE MEDIAN AS THE POINT ESTIMATE
+) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "sans"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(), 
+    panel.background = element_blank(), 
+    axis.line = element_line(color = "black")
+  ) +
+  labs(x = "Log-Transformed Estimated Covariate Effect") 
 
+plotB = mcmc_plot2 + scale_y_discrete(
+  labels = c(
+    "b_avgnoise" = "In-air Noise",
+    "b_time" = "Time of Day",
+    "b_tide_height" = "Tide height"
+  )
+)
 
+## COMBINE INTO ONE PLOT
+plotA/plotB
 
 
 #### TABLES ####
