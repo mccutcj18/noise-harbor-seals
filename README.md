@@ -28,4 +28,3 @@ Pollution, like in-air noise, is a threat to pinnipeds whose habitat heavily ove
 
 - [Data](https://github.com/mccutcj18/noise-harbor-seals/tree/main/Data)
 - [Code](https://github.com/mccutcj18/noise-harbor-seals/tree/main/Code)
-- [Figures]()
