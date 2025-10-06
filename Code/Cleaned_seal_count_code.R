@@ -28,7 +28,9 @@ install.packages("rstan")
 install.packages("bayesplot")
 install.packages("dplyr")
 install.packages("patchwork")
+install.packages("gridExtra")
 
+library(gridExtra)
 library(posterior) # FOR RANK-NORMALIZED EFFECTIVE SAMPLE SIZE AND RHAT CALCUALTIONS. ALSO ASSUMPTION CHECKING
 library(writexl) # CREATING EXCEL SHEETS
 library(openxlsx) # TURN DATA FRAME INTO XLSX FILE
@@ -1078,8 +1080,8 @@ sample_sizes <- full_data %>%
             sd_noise = sd(avgnoise, na.rm = TRUE)      # CALCULATE SD
   )
 
-## FINAL GRAPH
-ggplot(data = full_data, aes(x = month_year, y = avgnoise)) + 
+## FINAL PER MONTH GRAPH
+plotB = ggplot(data = full_data, aes(x = month_year, y = avgnoise)) + 
   geom_violin(trim = FALSE, alpha = 0.3) + 
   geom_boxplot(outlier.colour = "black", outlier.shape = 20, outlier.size = 5, 
                notch = FALSE, alpha = 0.9, width = 0.4) + 
@@ -1090,7 +1092,25 @@ ggplot(data = full_data, aes(x = month_year, y = avgnoise)) +
   theme_classic() + 
   theme(text = element_text(size = 20)) +
   labs(y = "In-air noise (dB)", x = "Month") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # TITL LABELS
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # TILT LABELS
+
+## FINAL PER OBSERVATION GRAPH
+plotA =ggplot(full_data, aes(x = date, y = avgnoise)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "",
+       x = "Observation day",
+       y = "In-air noise (dB)") +
+  scale_x_date(
+    breaks = seq(min(full_data$date), max(full_data$date), by = "14 days"),
+    date_labels = "%b %d") +
+  theme_classic() +
+  theme(text = element_text(size = 20)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # TILT LABELS 
+
+
+## COMBINE PLOTS
+grid.arrange(plotA, plotB, ncol = 1, nrow = 2) 
 
 
 ### FIGURE 7: SEAL COUNTS OVER THE MONTHS
